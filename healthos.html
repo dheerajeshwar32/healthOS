@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg1:#07090f; --bg2:#0d1117;
+  --card:rgba(255,255,255,0.035); 
+  --border:rgba(255,255,255,0.08); --text:#e8f0fe; --sub:#6b7fa3;
+  --p:#00d4aa; --acc:#ff6b6b; --ok:#06d6a0; --warn:#ffd93d; --purple:#c084fc; --blue:#38bdf8;
+  --r:18px; --fn:'Orbitron',monospace; --fb:'Nunito',sans-serif;
+}
+
+.light {
+  --bg1: #f0f4ff; --bg2: #e8eeff;
+  --card: rgba(255,255,255,0.85); 
+  --border: rgba(0,0,0,0.07); 
+  --text: #0d1117; --sub: #5a6a8a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fb);background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text);min-height:100vh; transition: background 0.3s, color 0.3s;}
+.hdr{padding:12px 20px;background:rgba(7,9,15,.9);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center; flex-wrap:wrap; gap:10px;}
+.light .hdr{background:rgba(240,244,255,.92);}
+.logo{font-family:var(--fn);font-size:1.15rem;} .logo em{color:var(--p);}
+
+.grid{max-width:1120px;margin:20px auto;display:grid;grid-template-columns:repeat(12,1fr);gap:14px;padding:0 14px;}
+.c4{grid-column:span 4} .c6{grid-column:span 6} .c12{grid-column:span 12}
+@media(max-width:768px){.c4, .c6{grid-column:span 12}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:0 8px 32px rgba(0,0,0,0.45); transition: background 0.3s, border 0.3s;}
+.clabel{font-size:.7rem;font-weight:800;text-transform:uppercase;color:var(--sub);margin-bottom:12px; display:block;}
+.bignum{font-family:var(--fn);font-size:2.2rem;color:var(--p);margin:4px 0 10px}
+.bignum span{font-size:1rem; color:var(--sub); font-family:var(--fb);}
+
+.btn{padding:8px 16px;border:none;border-radius:10px;font-family:var(--fb);font-weight:800;cursor:pointer;background:var(--p);color:#000;width:100%;margin-top:10px; transition:0.2s;}
+.btn:hover{transform:scale(1.02); filter:brightness(1.1);}
+.btn-outline {background:transparent; border:1px solid var(--border); color:var(--text); width:auto; margin-top:0;}
+
+.inp{width:100%;padding:9px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);margin-bottom:8px;outline:none;}
+.light .inp{background:rgba(0,0,0,.03);}
+
+.prog-track{height:8px;background:rgba(255,255,255,.06);border-radius:10px;overflow:hidden; margin-bottom:10px;}
+.light .prog-track{background:rgba(0,0,0,.08);}
+.prog-fill{height:100%;background:var(--p);width:0%;transition:0.4s ease-out;}
+
+input[type="range"] { width: 100%; accent-color: var(--p); cursor: pointer; }
+.advisor-box { background: rgba(0,212,170,0.1); border-left: 4px solid var(--p); padding: 15px; border-radius: 8px; margin-top: 15px; font-size: 0.9rem; line-height: 1.6; display: none; }
+
+.welcome-screen { position: fixed; inset: 0; background: var(--bg1); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.welcome-screen h1 { font-family: var(--fn); font-size: 3.5rem; color: var(--text); }
+.welcome-screen h1 em { color: var(--p); font-style: normal; }
+.welcome-screen p { color: var(--sub); margin-bottom: 40px; }
+.welcome-box { background: var(--card); padding: 30px; border-radius: var(--r); border: 1px solid var(--border); width: 100%; max-width: 350px; }
+
+.ftr { text-align: center; padding: 24px; font-size: 0.8rem; color: var(--sub); grid-column: span 12; }
+.ftr span { color: var(--p); font-weight: bold; }
+
+.med-item {
+  background: rgba(255,255,255,0.05);
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(124,77,255,0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: 0.3s;
+}
+.med-item.taken {
+  border-color: rgba(6,214,160,0.5);
+  background: rgba(6,214,160,0.06);
+  opacity: 0.7;
+}
+.med-take-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--fb);
+  font-weight: 800;
+  font-size: 0.75rem;
+  cursor: pointer;
+  background: var(--purple);
+  color: white;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+.med-take-btn.done {
+  background: var(--ok);
+  color: #000;
+  cursor: default;
+}
+.med-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.med-summary span { color: var(--sub); }
+.med-summary b { color: var(--p); }
+
+@media print {
+  .btn, .inp, input[type="range"], .welcome-screen, .header-buttons, .ftr, .tip-box { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; background: white; }
+  .prog-track { background: #eee; }
+  .advisor-box { background: #f9f9f9; color: black; }
+  * { color: black !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="welcome-screen" id="welcomeScreen">
+  <h1>Health<em>OS</em></h1>
+  <p>Your personalized health care portal.</p>
+  <div class="welcome-box">
+    <input type="text" id="nameInput" class="inp" placeholder="What is your name?" style="text-align:center;">
+    <button class="btn" onclick="enterDashboard()">Enter Dashboard</button>
+  </div>
+</div>
+
+<header class="hdr">
+  <div style="display:flex; align-items:center; gap:15px;">
+    <div class="logo">Health<em>OS</em></div>
+    <div id="greeting" style="font-size: 1.2rem; color: var(--p); font-weight: 800;"></div>
+  </div>
+  
+  <div class="header-buttons" style="display:flex; align-items:center; gap:8px;">
+    <button class="btn btn-outline" style="border-color:var(--sub);" onclick="window.print()">📥 PDF</button>
+    <button class="btn btn-outline" style="border-color:var(--acc); color:var(--acc);" onclick="resetApp()">🔄 Reset</button>
+    <button class="btn btn-outline" onclick="toggleTheme()">🌗 Theme</button>
+    <div style="font-family:var(--fn); margin-left:10px;" id="clock">00:00</div>
+  </div>
+</header>
+
+<main class="grid">
+
+  <div class="card c12" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+    <div style="flex: 1; min-width: 200px;">
+      <span class="clabel">🎯 Daily Targets</span>
+      <p style="font-size:0.8rem; color:var(--sub);">Adjust your health goals dynamically.</p>
+    </div>
+    <div style="flex: 1; min-width: 200px;">
+      <label style="font-size:0.8rem; font-weight:bold;">Water: <span id="goalWaterText" style="color:var(--p)">8</span> glasses</label>
+      <input type="range" id="goalWaterInput" min="4" max="16" value="8" onchange="updateGoals()">
+    </div>
+    <div style="flex: 1; min-width: 200px;">
+      <label style="font-size:0.8rem; font-weight:bold;">Steps: <span id="goalStepsText" style="color:var(--p)">10000</span></label>
+      <input type="range" id="goalStepsInput" min="2000" max="20000" step="1000" value="10000" onchange="updateGoals()">
+    </div>
+  </div>
+
+  <div class="card c4">
+    <span class="clabel">💧 Hydration</span>
+    <div class="bignum" id="waterNum">0 <span>/ 8</span></div>
+    <div class="prog-track"><div class="prog-fill" id="waterBar" style="background:var(--blue)"></div></div>
+    <button class="btn" style="background:var(--blue); color:white;" onclick="addWater()">+ Add Glass</button>
+  </div>
+
+  <div class="card c4">
+    <span class="clabel">🚶 Steps</span>
+    <div class="bignum" id="stepsNum">0</div>
+    <div class="prog-track"><div class="prog-fill" id="stepBar" style="background:var(--ok)"></div></div>
+    <input type="number" class="inp" id="stepInput" placeholder="Enter steps">
+    <button class="btn" style="background:var(--ok); color:white;" onclick="addSteps()">Log Steps</button>
+  </div>
+
+  <div class="card c4">
+    <span class="clabel">🍎 Calories</span>
+    <div class="bignum" id="calNum">0 <span>/ 2000 kcal</span></div>
+    <div class="prog-track"><div class="prog-fill" id="calBar" style="background:var(--warn)"></div></div>
+    <input type="number" class="inp" id="calInput" placeholder="Calories eaten">
+    <button class="btn" style="background:var(--warn); color:black;" onclick="addCalories()">Add Food</button>
+  </div>
+
+  <div class="card c4">
+    <span class="clabel">😴 Sleep</span>
+    <div class="bignum" id="sleepNum">0 <span>hrs</span></div>
+    <input type="number" class="inp" id="sleepInput" placeholder="Hours slept" step="0.5">
+    <button class="btn" style="background:var(--purple); color:white;" onclick="logSleep()">Log Sleep</button>
+  </div>
+
+  <div class="card c4">
+    <span class="clabel">❤️ Heart Rate</span>
+    <div class="bignum" id="hrNum" style="color:var(--acc)">-- <span>bpm</span></div>
+    <input type="number" class="inp" id="hrInput" placeholder="Enter BPM">
+    <button class="btn" style="background:var(--acc); color:white;" onclick="logHR()">Log HR</button>
+    <div id="hrStatus" style="margin-top:10px; font-size:0.8rem; font-weight:bold;"></div>
+  </div>
+
+  <div class="card c4">
+    <span class="clabel">⚖️ BMI Calc</span>
+    <input type="number" class="inp" id="bHeight" placeholder="Height (cm)">
+    <input type="number" class="inp" id="bWeight" placeholder="Weight (kg)">
+    <button class="btn" onclick="calcBMI()">Calculate</button>
+    <div id="bmiResult" style="margin-top:10px; font-weight:bold; color:var(--warn)"></div>
+  </div>
+
+  <div class="card c6">
+    <span class="clabel">📈 Weekly Steps Trend</span>
+    <canvas id="stepsChart" height="120"></canvas>
+  </div>
+
+  <div class="card c6">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span class="clabel" style="margin-bottom:0;">🏋️ Workout Logger</span>
+      <span id="woCalsBurned" style="font-size:0.75rem; font-weight:900; color:var(--p);">0 KCAL BURNED</span>
+    </div>
+    
+    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+      <select class="inp" id="woType" style="margin-bottom:0; flex:1;">
+        <option value="">Exercise type</option>
+        <option>🏃 Running</option>
+        <option>🚶 Walking</option>
+        <option>🚴 Cycling</option>
+        <option>🏊 Swimming</option>
+        <option>🏋️ Weight Training</option>
+        <option>🧘 Yoga</option>
+        <option>⚽ Sports</option>
+        <option>🥊 HIIT</option>
+      </select>
+      <input class="inp" id="woDuration" type="number" placeholder="Min" style="width: 70px; margin-bottom:0;">
+      <input class="inp" id="woCalsBurn" type="number" placeholder="Kcal" style="width: 80px; margin-bottom:0;">
+    </div>
+    
+    <button class="btn" style="background:var(--ok); color:white;" onclick="addWorkout()">+ Log Workout</button>
+    <div id="woList" style="margin-top:15px; font-size:0.9rem; max-height:100px; overflow-y:auto;"></div>
+  </div>
+
+  <div class="card c6">
+    <span class="clabel">💊 Medicine Schedule</span>
+
+    <div class="med-summary">
+      <span>Today's Progress</span>
+      <b id="medProgress">0 / 0 taken</b>
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <input type="text" class="inp" id="medName" placeholder="Medicine name" style="margin-bottom:0;">
+      <input type="time" class="inp" id="medTime" style="max-width: 130px; margin-bottom:0;">
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:8px; margin-bottom:4px; align-items:center; font-size:0.78rem; color:var(--sub); font-weight:700;">
+      <span>Repeat:</span>
+      <label style="cursor:pointer;"><input type="radio" name="medRepeat" value="daily" checked style="accent-color:var(--purple);"> Daily</label>
+      <label style="cursor:pointer;"><input type="radio" name="medRepeat" value="once" style="accent-color:var(--purple);"> One-time</label>
+    </div>
+
+    <button class="btn" style="background:var(--purple); color:white;" onclick="addMedicine()">+ Add Medicine</button>
+    <div id="medList" style="margin-top:12px; font-size:0.9rem; max-height:200px; overflow-y:auto;"></div>
+  </div>
+
+  <div class="card c6">
+    <span class="clabel">🎙️ Voice Assistant</span>
+    <p style="font-size:0.8rem; color:var(--sub); margin-bottom:10px;">Say: "add water" or "log steps"</p>
+    <button class="btn" style="background:var(--acc); color:white;" onclick="startVoice()">🎤 Listen</button>
+    <div id="voiceSt" style="margin-top:10px; font-style:italic; color:var(--p)"></div>
+  </div>
+
+  <div class="card c12" style="text-align: center;">
+    <span class="clabel">📊 Smart Advisor & Report</span>
+    
+    <div class="tip-box" style="background: rgba(0, 212, 170, 0.05); border: 1px dashed var(--p); border-radius: 8px; padding: 15px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div id="dailyTip" style="font-size: 1rem; color: var(--text); font-style: italic; font-weight: 600;"></div>
+      <button class="btn btn-outline" style="width: auto; font-size: 0.7rem; padding: 5px 12px; margin-top: 10px; border-color: var(--p); color: var(--p);" onclick="fetchHealthTip()">🔄 Next Tip</button>
+    </div>
+
+    <div class="bignum" id="scoreText" style="font-size: 3rem; margin:15px 0;">Score: ? / 100</div>
+    
+    <div id="advisorBox" class="advisor-box"></div>
+    
+    <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top:20px;">
+      <button class="btn" style="width:auto;" onclick="generateScore()">🔍 Analyze My Data</button>
+      <button class="btn" style="background:var(--ok); color:white; width:auto;" onclick="shareToWhatsApp()">📲 Share to WhatsApp</button>
+    </div>
+  </div>
+
+  <footer class="ftr">
+    © 2026 HealthOS Project. All rights reserved.
+  </footer>
+</main>
+
+<script>
+let hData = {
+    name: "", water: 0, steps: 0, cals: 0, sleep: 0, hr: "--",
+    goalWater: 8, goalSteps: 10000
+};
+
+let savedData = localStorage.getItem("healthos_student");
+if (savedData) {
+    hData = JSON.parse(savedData);
+    if (hData.name !== "") { document.getElementById("welcomeScreen").style.display = "none"; }
+}
+
+function saveData() {
+    localStorage.setItem("healthos_student", JSON.stringify(hData));
+    updateUI();
+}
+
+function enterDashboard() {
+    let enteredName = document.getElementById("nameInput").value.trim();
+    hData.name = enteredName === "" ? "User" : enteredName;
+    saveData();
+    setGreeting(); 
+    document.getElementById("welcomeScreen").style.display = "none";
+}
+
+function setGreeting() {
+    let currentHour = new Date().getHours();
+    let msg = currentHour < 12 ? "Good Morning" : currentHour < 18 ? "Good Afternoon" : "Good Evening";
+    document.getElementById("greeting").innerText = msg + ", " + (hData.name || "User") + "!";
+}
+
+setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString(); }, 1000);
+
+function toggleTheme() {
+    document.body.classList.toggle("light");
+    let isLight = document.body.classList.contains("light");
+    myChart.options.scales.x.ticks.color = isLight ? '#5a6a8a' : '#888';
+    myChart.options.scales.y.ticks.color = isLight ? '#5a6a8a' : '#888';
+    myChart.update();
+}
+
+function resetApp() {
+    if (confirm("Reset all data and log out?")) {
+        localStorage.removeItem("healthos_student");
+        localStorage.removeItem("healthos_meds");
+        location.reload(); 
+    }
+}
+
+function updateGoals() {
+    hData.goalWater = parseInt(document.getElementById("goalWaterInput").value);
+    hData.goalSteps = parseInt(document.getElementById("goalStepsInput").value);
+    saveData();
+}
+
+function addWater() { hData.water += 1; saveData(); }
+function addSteps() {
+    let val = parseInt(document.getElementById("stepInput").value);
+    if (val > 0) { hData.steps += val; document.getElementById("stepInput").value = ""; saveData(); }
+}
+function addCalories() {
+    let val = parseInt(document.getElementById("calInput").value);
+    if (val > 0) { hData.cals += val; document.getElementById("calInput").value = ""; saveData(); }
+}
+function logSleep() {
+    let val = parseFloat(document.getElementById("sleepInput").value);
+    if (val > 0) { hData.sleep = val; document.getElementById("sleepInput").value = ""; saveData(); }
+}
+function logHR() {
+    let val = parseInt(document.getElementById("hrInput").value);
+    if (val > 0) { hData.hr = val; document.getElementById("hrInput").value = ""; saveData(); }
+}
+
+let workoutCalsTotal = 0;
+
+function addWorkout() {
+    let type = document.getElementById("woType").value;
+    let duration = parseInt(document.getElementById("woDuration").value);
+    let cals = parseInt(document.getElementById("woCalsBurn").value);
+    
+    if (type !== "" && !isNaN(duration) && !isNaN(cals)) {
+        workoutCalsTotal += cals;
+        document.getElementById("woCalsBurned").innerText = workoutCalsTotal + " KCAL BURNED";
+        
+        let listContainer = document.getElementById("woList");
+        let newItemHTML = `<div style='background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid rgba(6,214,160,0.3); display:flex; justify-content:space-between; align-items:center;'>
+            <span><b>${type}</b> <small style="color:var(--sub)">(${duration} min)</small></span>
+            <span style='color:var(--ok); font-weight:bold;'>${cals} kcal</span>
+        </div>`;
+        listContainer.innerHTML += newItemHTML;
+        
+        document.getElementById("woType").value = "";
+        document.getElementById("woDuration").value = "";
+        document.getElementById("woCalsBurn").value = "";
+    } else {
+        alert("Please select an exercise and enter valid numbers for duration and calories.");
+    }
+}
+
+let medsList = [];
+
+function loadMeds() {
+    let stored = localStorage.getItem("healthos_meds");
+    if (!stored) return;
+    let parsed = JSON.parse(stored);
+    let today = new Date().toDateString();
+
+    medsList = parsed.map(med => {
+        if (med.repeat === "daily" && med.lastTakenDate !== today) {
+            med.taken = false;
+            med.alerted = false;
+        }
+        return med;
+    });
+
+    saveMeds();
+    renderMedList();
+}
+
+function saveMeds() {
+    localStorage.setItem("healthos_meds", JSON.stringify(medsList));
+    updateMedProgress();
+}
+
+function updateMedProgress() {
+    let total = medsList.length;
+    let taken = medsList.filter(m => m.taken).length;
+    document.getElementById("medProgress").innerText = `${taken} / ${total} taken`;
+    document.getElementById("medProgress").style.color = (total > 0 && taken === total) ? "var(--ok)" : "var(--purple)";
+}
+
+function addMedicine() {
+    let name = document.getElementById("medName").value.trim();
+    let time = document.getElementById("medTime").value;
+    let repeat = document.querySelector('input[name="medRepeat"]:checked').value;
+
+    if (name !== "" && time !== "") {
+        let med = { name, time, repeat, taken: false, alerted: false, lastTakenDate: "" };
+        medsList.push(med);
+        saveMeds();
+        renderMedList();
+        document.getElementById("medName").value = "";
+        document.getElementById("medTime").value = "";
+    } else {
+        alert("Please enter both medicine name and time.");
+    }
+}
+
+function markTaken(index) {
+    let today = new Date().toDateString();
+    medsList[index].taken = true;
+    medsList[index].lastTakenDate = today;
+    saveMeds();
+    renderMedList();
+}
+
+function deleteMed(index) {
+    medsList.splice(index, 1);
+    saveMeds();
+    renderMedList();
+}
+
+function renderMedList() {
+    let container = document.getElementById("medList");
+    container.innerHTML = "";
+
+    if (medsList.length === 0) {
+        container.innerHTML = `<div style="color:var(--sub); font-size:0.82rem; text-align:center; padding:10px;">No medicines added yet.</div>`;
+        return;
+    }
+
+    medsList.forEach((med, i) => {
+        let timeParts = med.time.split(':');
+        let h = parseInt(timeParts[0]);
+        let m = timeParts[1];
+        let ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        let displayTime = h + ":" + m + " " + ampm;
+
+        let repeatBadge = med.repeat === "daily"
+            ? `<span style="background:rgba(192,132,252,0.2); color:var(--purple); padding:2px 7px; border-radius:6px; font-size:0.7rem; font-weight:800;">🔁 Daily</span>`
+            : `<span style="background:rgba(255,107,107,0.15); color:var(--acc); padding:2px 7px; border-radius:6px; font-size:0.7rem; font-weight:800;">1× Once</span>`;
+
+        let actionBtn = med.taken
+            ? `<button class="med-take-btn done" disabled>✅ Taken</button>`
+            : `<button class="med-take-btn" onclick="markTaken(${i})">Take Now</button>`;
+
+        let deleteBtn = `<button onclick="deleteMed(${i})" style="background:none;border:none;cursor:pointer;color:var(--acc);font-size:1rem;padding:0 4px;" title="Remove">✕</button>`;
+
+        container.innerHTML += `
+          <div class="med-item ${med.taken ? 'taken' : ''}">
+            <div style="display:flex; flex-direction:column; gap:3px; flex:1;">
+              <div style="font-weight:800; font-size:0.9rem;">⏰ ${displayTime} — ${med.name}</div>
+              <div>${repeatBadge}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${actionBtn}
+              ${deleteBtn}
+            </div>
+          </div>`;
+    });
+}
+
+setInterval(function() {
+    let now = new Date();
+    let currentTime = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
+    let today = now.toDateString();
+
+    medsList.forEach((med, i) => {
+        if (med.time === currentTime && !med.alerted && !med.taken) {
+            alert("💊 Medicine Reminder: Time to take " + med.name + "!");
+            medsList[i].alerted = true;
+            saveMeds();
+        }
+    });
+}, 10000);
+
+function calcBMI() {
+    let h = document.getElementById("bHeight").value / 100;
+    let w = document.getElementById("bWeight").value;
+    if (h && w) {
+        let bmi = (w / (h * h)).toFixed(1);
+        let cat = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal" : bmi < 30 ? "Overweight" : "Obese";
+        document.getElementById("bmiResult").innerText = `BMI: ${bmi} (${cat})`;
+    }
+}
+
+function generateScore() {
+    let score = 0;
+    if (hData.water >= hData.goalWater) score += 25; else if (hData.water > 0) score += 10;
+    if (hData.steps >= hData.goalSteps) score += 25; else if (hData.steps > 0) score += 10;
+    if (hData.sleep >= 7) score += 25; else if (hData.sleep >= 4) score += 10;
+    if (hData.cals > 0 && hData.cals <= 2000) score += 25; else if (hData.cals > 2000) score += 15;
+
+    document.getElementById("scoreText").innerText = `Score: ${score} / 100`;
+    document.getElementById("scoreText").style.color = score >= 80 ? "var(--ok)" : score >= 50 ? "var(--warn)" : "var(--acc)";
+
+    let advice = `<b>👨‍⚕️ Smart Advisor Notes for ${hData.name || "User"}:</b><br><br>`;
+    if (hData.water < hData.goalWater) advice += `💧 <b>Hydration:</b> You are ${hData.goalWater - hData.water} glasses away from your goal.<br>`;
+    if (hData.steps < hData.goalSteps) advice += `🚶 <b>Activity:</b> Keep moving! You need ${hData.goalSteps - hData.steps} more steps.<br>`;
+    if (hData.sleep < 7) advice += `😴 <b>Rest:</b> Try to aim for at least 7 hours of sleep.<br>`;
+    
+    if (workoutCalsTotal > 0) {
+        advice += `🏋️ <b>Fitness:</b> Great job burning ${workoutCalsTotal} kcal through workouts today!<br>`;
+    } else {
+        advice += `🏋️ <b>Fitness:</b> Try logging a quick 15-minute workout to boost your heart health.<br>`;
+    }
+
+    let total = medsList.length;
+    let taken = medsList.filter(m => m.taken).length;
+    if (total > 0) {
+        if (taken === total) {
+            advice += `💊 <b>Medicines:</b> All ${total} medicines taken today. Well done!<br>`;
+        } else {
+            advice += `💊 <b>Medicines:</b> ${total - taken} medicine(s) still pending for today.<br>`;
+        }
+    }
+
+    if (score >= 80) advice += `<br><span style='color:var(--ok)'>🌟 Excellent work today! You are hitting your targets!</span>`;
+
+    let box = document.getElementById("advisorBox");
+    box.innerHTML = advice;
+    box.style.display = "block";
+}
+
+function shareToWhatsApp() {
+    let taken = medsList.filter(m => m.taken).length;
+    let msg = `Hey! I am tracking my health on HealthOS:\n🚶 Steps: ${hData.steps}/${hData.goalSteps}\n💧 Water: ${hData.water}/${hData.goalWater}\n🏋️ Workouts: ${workoutCalsTotal} kcal burned\n💊 Medicines: ${taken}/${medsList.length} taken\n\nBuilt using HealthOS!`;
+    window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(msg), "_blank");
+}
+
+const ctx = document.getElementById('stepsChart').getContext('2d');
+let myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'],
+        datasets: [{
+            label: 'Steps',
+            data: [4500, 6200, 8000, 3000, 7500, 9200, hData.steps],
+            backgroundColor: '#06d6a0',
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            x: { ticks: { color: '#888' }, grid: { display: false } }
+        }
+    }
+});
+
+const healthTipsDB = [
+    "Drinking water 30 minutes before meals improves digestion by 24%.",
+    "A 15-minute walk after eating reduces blood sugar spikes.",
+    "Exposure to morning sunlight resets your circadian rhythm for better sleep.",
+    "Deep breathing for 2 minutes lowers cortisol (stress hormone) levels.",
+    "Chewing your food 30 times increases nutrient absorption.",
+    "Replacing one sugary drink with water saves roughly 150 calories.",
+    "Stretching before bed improves blood flow and muscle recovery.",
+    "Taking a screen break every 20 minutes protects your eyesight.",
+    "Eating protein at breakfast keeps you full until lunchtime.",
+    "Standing up for 5 minutes every hour offsets the risks of sitting."
+];
+
+function fetchHealthTip() {
+    let tipElement = document.getElementById("dailyTip");
+    let randomIndex = Math.floor(Math.random() * healthTipsDB.length);
+    tipElement.innerText = '"' + healthTipsDB[randomIndex] + '"';
+}
+
+function updateUI() {
+    document.getElementById("goalWaterInput").value = hData.goalWater;
+    document.getElementById("goalWaterText").innerText = hData.goalWater;
+    document.getElementById("goalStepsInput").value = hData.goalSteps;
+    document.getElementById("goalStepsText").innerText = hData.goalSteps;
+
+    document.getElementById("waterNum").innerHTML = `${hData.water} <span>/ ${hData.goalWater}</span>`;
+    document.getElementById("stepsNum").innerText = hData.steps;
+    document.getElementById("calNum").innerHTML = `${hData.cals} <span>/ 2000 kcal</span>`;
+    document.getElementById("sleepNum").innerHTML = `${hData.sleep} <span>hrs</span>`;
+    document.getElementById("hrNum").innerHTML = `${hData.hr} <span>bpm</span>`;
+
+    document.getElementById("waterBar").style.width = Math.min((hData.water / hData.goalWater) * 100, 100) + "%";
+    document.getElementById("stepBar").style.width = Math.min((hData.steps / hData.goalSteps) * 100, 100) + "%";
+    document.getElementById("calBar").style.width = Math.min((hData.cals / 2000) * 100, 100) + "%";
+
+    myChart.data.datasets[0].data[6] = hData.steps;
+    myChart.update();
+}
+
+function startVoice() {
+    let SpeechAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechAPI) return alert("Voice not supported.");
+    let rec = new SpeechAPI();
+    document.getElementById("voiceSt").innerText = "Listening...";
+    rec.onresult = function(e) {
+        let text = e.results[0][0].transcript.toLowerCase();
+        if (text.includes("water")) { addWater(); document.getElementById("voiceSt").innerText = "Added 1 glass of water."; } 
+        else if (text.includes("step")) { hData.steps += 1000; saveData(); document.getElementById("voiceSt").innerText = "Added 1,000 steps."; } 
+        else { document.getElementById("voiceSt").innerText = "Command not recognized."; }
+    };
+    rec.start();
+}
+
+setGreeting();
+updateUI();
+fetchHealthTip();
+loadMeds();
+</script>
+</body>
+</html>
